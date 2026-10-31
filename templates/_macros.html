@@ -1,0 +1,29 @@
+{% macro status_badge(e, reg) -%}
+  {%- if reg and reg.status == 'confirmed' -%}<span class="badge badge-ok">✓ Registered</span>
+  {%- elif reg -%}<span class="badge badge-warn">On waitlist</span>
+  {%- elif e.is_past -%}<span class="badge badge-muted">Ended</span>
+  {%- elif e.is_full -%}<span class="badge badge-warn">Full · waitlist open</span>
+  {%- elif e.unlimited -%}<span class="badge">Open to all</span>
+  {%- else -%}<span class="badge">{{ e.spots_left }} spot{{ '' if e.spots_left == 1 else 's' }} left</span>
+  {%- endif -%}
+{%- endmacro %}
+
+{% macro event_card(e, reg) %}
+<article class="card">
+  <a class="card-link" href="{{ url_for('event_detail', event_id=e.id) }}">
+    <div class="datebox"><span class="mon">{{ e.event_date|mon }}</span><span class="day">{{ e.event_date|dayn }}</span></div>
+    <div class="card-body">
+      <span class="chip cat-{{ e.category|lower }}">{{ e.category }}</span>
+      <h3>{{ e.title }}</h3>
+      <p class="meta">🕒 {{ e.start_time|ftime }}{% if e.end_time %} – {{ e.end_time|ftime }}{% endif %}</p>
+      <p class="meta">📍 {{ e.venue }}</p>
+      <p class="blurb">{{ e.description }}</p>
+    </div>
+    <div class="card-foot">
+      {{ status_badge(e, reg) }}
+      <span class="count">{{ e.confirmed }}{% if not e.unlimited %}/{{ e.capacity }}{% endif %} going</span>
+    </div>
+    {% if not e.unlimited %}<div class="meter"><span style="width: {{ e.fill_pct }}%"></span></div>{% endif %}
+  </a>
+</article>
+{% endmacro %}

@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+{% block title %}Organiser dashboard{% endblock %}
+{% block content %}
+<section class="page-head page-head-row">
+  <div>
+    <h1>Organiser dashboard</h1>
+    <p class="muted">Create events, watch registrations come in, and manage attendees.</p>
+  </div>
+  <a class="btn btn-primary" href="{{ url_for('event_new') }}">+ New event</a>
+</section>
+
+<div class="stats">
+  <div class="stat"><span class="n">{{ stats.events }}</span><span class="l">Total events</span></div>
+  <div class="stat"><span class="n">{{ stats.upcoming }}</span><span class="l">Upcoming</span></div>
+  <div class="stat"><span class="n">{{ stats.registrations }}</span><span class="l">Confirmed registrations</span></div>
+  <div class="stat"><span class="n">{{ stats.waitlisted }}</span><span class="l">On waitlists</span></div>
+</div>
+
+{% macro table(items, past=False) %}
+<div class="table-wrap">
+<table class="table">
+  <thead><tr><th>Event</th><th>When</th><th>Registrations</th>{% if past %}<th>Attended</th>{% endif %}<th class="right">Actions</th></tr></thead>
+  <tbody>
+  {% for e in items %}
+    <tr>
+      <td>
+        <a href="{{ url_for('event_detail', event_id=e.id) }}"><strong>{{ e.title }}</strong></a>
+        <div><span class="chip chip-sm cat-{{ e.category|lower }}">{{ e.category }}</span> <span class="muted small">{{ e.venue }}</span></div>
+      </td>
+      <td class="nowrap">{{ e.event_date|fdate }}<div class="muted small">{{ e.start_time|ftime }}</div></td>
+      <td>
+        <strong>{{ e.confirmed }}</strong>{% if not e.unlimited %} / {{ e.capacity }}{% endif %}
+        {% if e.waitlisted %}<span class="badge badge-warn">+{{ e.waitlisted }} waitlist</span>{% endif %}
+        {% if not e.unlimited %}<div class="meter"><span style="width: {{ e.fill_pct }}%"></span></div>{% endif %}
+      </td>
+      {% if past %}<td>{{ e.attended_count }}</td>{% endif %}
+      <td class="right nowrap">
+        <a class="btn btn-ghost btn-sm" href="{{ url_for('participants', event_id=e.id) }}">Participants</a>
+        <a class="btn btn-ghost btn-sm" href="{{ url_for('event_edit', event_id=e.id) }}">Edit</a>
+        <form class="inline" method="post" action="{{ url_for('event_delete', event_id=e.id) }}"
+              onsubmit="return confirm('Delete “{{ e.title|replace("'", "") }}” and its {{ e.confirmed + e.waitlisted }} registration(s)? This can\'t be undone.')">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button class="btn btn-danger btn-sm">Delete</button>
+        </form>
+      </td>
+    </tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+{% endmacro %}
+
+<h2 class="section">Upcoming <span class="count-pill">{{ upcoming|length }}</span></h2>
+{% if upcoming %}{{ table(upcoming) }}{% else %}
+  <div class="empty"><h3>No upcoming events</h3><p>Publish your first one and students can start registering.</p><a class="btn btn-primary" href="{{ url_for('event_new') }}">Create an event</a></div>
+{% endif %}
+
+{% if past %}
+  <h2 class="section">Past events <span class="count-pill">{{ past|length }}</span></h2>
+  {{ table(past, True) }}
+{% endif %}
+{% endblock %}

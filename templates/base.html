@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}Events{% endblock %} · CampusConnect</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎟️</text></svg>">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+  <header class="topbar">
+    <div class="wrap topbar-inner">
+      <a class="brand" href="{{ url_for('index') }}"><span class="brand-mark">🎟️</span> CampusConnect</a>
+      <nav class="nav">
+        <a href="{{ url_for('index') }}" class="{{ 'active' if request.endpoint == 'index' }}">Events</a>
+        {% if g.user and g.user.role == 'student' %}
+          <a href="{{ url_for('my_events') }}" class="{{ 'active' if request.endpoint == 'my_events' }}">My events</a>
+        {% elif g.user and g.user.role == 'organizer' %}
+          <a href="{{ url_for('dashboard') }}" class="{{ 'active' if request.endpoint == 'dashboard' }}">Dashboard</a>
+        {% endif %}
+      </nav>
+      <div class="nav-right">
+        {% if g.user %}
+          <span class="who">{{ g.user.name }} <small>{{ g.user.role }}</small></span>
+          <form method="post" action="{{ url_for('logout') }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button class="btn btn-ghost btn-sm">Log out</button>
+          </form>
+        {% else %}
+          <a class="btn btn-ghost btn-sm" href="{{ url_for('login') }}">Log in</a>
+          <a class="btn btn-primary btn-sm" href="{{ url_for('signup') }}">Sign up</a>
+        {% endif %}
+      </div>
+    </div>
+  </header>
+
+  <main class="wrap">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        <div class="flashes" role="status">
+          {% for category, message in messages %}
+            <div class="flash flash-{{ category }}">{{ message }}</div>
+          {% endfor %}
+        </div>
+      {% endif %}
+    {% endwith %}
+    {% block content %}{% endblock %}
+  </main>
+
+  <footer class="footer wrap">
+    <span>CampusConnect · discover, register, show up.</span>
+  </footer>
+</body>
+</html>

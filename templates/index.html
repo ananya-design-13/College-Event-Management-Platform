@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% from "_macros.html" import event_card %}
+{% block title %}Discover events{% endblock %}
+{% block content %}
+<section class="hero">
+  <p class="eyebrow">Your college, this month</p>
+  <h1>What's happening on campus</h1>
+  <form class="searchbar" method="get" action="{{ url_for('index') }}">
+    <input type="search" name="q" value="{{ q }}" placeholder="Search events, venues, topics…" aria-label="Search events">
+    {% if cat %}<input type="hidden" name="category" value="{{ cat }}">{% endif %}
+    <input type="hidden" name="when" value="{{ when }}">
+    <input type="hidden" name="sort" value="{{ sort }}">
+    <button class="btn btn-primary">Search</button>
+  </form>
+</section>
+
+<section class="filters">
+  <div class="pills" aria-label="Category">
+    <a class="pill {{ 'on' if not cat }}" href="{{ url_for('index', q=q or None, when=when, sort=sort) }}">All</a>
+    {% for c in CATEGORIES %}
+      <a class="pill pill-{{ c|lower }} {{ 'on' if cat == c }}" href="{{ url_for('index', q=q or None, category=c, when=when, sort=sort) }}">{{ c }}</a>
+    {% endfor %}
+  </div>
+  <div class="filters-right">
+    <div class="seg" aria-label="When">
+      {% for key, label in [('upcoming', 'Upcoming'), ('past', 'Past'), ('all', 'All')] %}
+        <a class="{{ 'on' if when == key }}" href="{{ url_for('index', q=q or None, category=cat or None, when=key, sort=sort) }}">{{ label }}</a>
+      {% endfor %}
+    </div>
+    <div class="seg" aria-label="Sort">
+      <a class="{{ 'on' if sort == 'date' }}" href="{{ url_for('index', q=q or None, category=cat or None, when=when, sort='date') }}">By date</a>
+      <a class="{{ 'on' if sort == 'popular' }}" href="{{ url_for('index', q=q or None, category=cat or None, when=when, sort='popular') }}">Most popular</a>
+    </div>
+  </div>
+</section>
+
+<p class="result-count">{{ events|length }} event{{ '' if events|length == 1 else 's' }}{% if q %} matching “{{ q }}”{% endif %}{% if cat %} in {{ cat }}{% endif %}</p>
+
+{% if events %}
+  <div class="grid">
+    {% for e in events %}{{ event_card(e, my_regs.get(e.id)) }}{% endfor %}
+  </div>
+{% else %}
+  <div class="empty">
+    <h3>No events found</h3>
+    <p>Try a different search or clear the filters.</p>
+    <a class="btn btn-ghost" href="{{ url_for('index') }}">Clear filters</a>
+  </div>
+{% endif %}
+{% endblock %}

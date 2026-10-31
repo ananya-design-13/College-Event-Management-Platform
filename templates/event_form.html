@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block title %}{{ 'New event' if mode == 'new' else 'Edit event' }}{% endblock %}
+{% block content %}
+<a class="back" href="{{ url_for('dashboard') }}">← Dashboard</a>
+<div class="form-page">
+  <h1>{{ 'Create an event' if mode == 'new' else 'Edit event' }}</h1>
+  <form method="post" class="form form-wide">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <label>Title <input name="title" value="{{ ev.title }}" maxlength="120" required placeholder="e.g. Intro to Web Development"></label>
+    <label>Description <textarea name="description" rows="6" required placeholder="What will happen? Who should come? What should they bring?">{{ ev.description }}</textarea></label>
+    <div class="two">
+      <label>Category
+        <select name="category" required>
+          <option value="" disabled {{ 'selected' if not ev.category }}>Choose…</option>
+          {% for c in CATEGORIES %}<option {{ 'selected' if ev.category == c }}>{{ c }}</option>{% endfor %}
+        </select>
+      </label>
+      <label>Venue <input name="venue" value="{{ ev.venue }}" required placeholder="e.g. Main Auditorium"></label>
+    </div>
+    <div class="three">
+      <label>Date <input type="date" name="event_date" value="{{ ev.event_date }}" {% if mode == 'new' %}min="{{ today }}"{% endif %} required></label>
+      <label>Start time <input type="time" name="start_time" value="{{ ev.start_time }}" required></label>
+      <label>End time <input type="time" name="end_time" value="{{ ev.end_time or '' }}"><small class="muted">optional</small></label>
+    </div>
+    <label>Capacity <input type="number" name="capacity" min="0" value="{{ ev.capacity }}"><small class="muted">0 = unlimited. When full, students join a waitlist and are promoted automatically if someone cancels or you raise the limit.</small></label>
+    <div class="actions">
+      <button class="btn btn-primary">{{ 'Publish event' if mode == 'new' else 'Save changes' }}</button>
+      <a class="btn btn-ghost" href="{{ url_for('dashboard') }}">Cancel</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

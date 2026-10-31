@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% from "_macros.html" import event_card %}
+{% block title %}My events{% endblock %}
+{% block content %}
+<section class="page-head">
+  <h1>My events</h1>
+  <p class="muted">Everything you've signed up for, in one place.</p>
+</section>
+
+<h2 class="section">Upcoming <span class="count-pill">{{ upcoming|length }}</span></h2>
+{% if upcoming %}
+  <div class="rows">
+    {% for e in upcoming %}
+      <div class="row">
+        <div class="datebox"><span class="mon">{{ e.event_date|mon }}</span><span class="day">{{ e.event_date|dayn }}</span></div>
+        <div class="row-main">
+          <a href="{{ url_for('event_detail', event_id=e.id) }}"><strong>{{ e.title }}</strong></a>
+          <div class="meta">{{ e.start_time|ftime }} · {{ e.venue }}</div>
+        </div>
+        <div class="row-side">
+          {% if e.my_status == 'confirmed' %}<span class="badge badge-ok">✓ Confirmed</span>{% else %}<span class="badge badge-warn">Waitlisted</span>{% endif %}
+          <a class="btn btn-link btn-sm" href="{{ url_for('event_ics', event_id=e.id) }}">📅 Calendar</a>
+          <form method="post" action="{{ url_for('cancel_registration', event_id=e.id) }}" onsubmit="return confirm('Cancel your registration?')">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button class="btn btn-ghost btn-sm">Cancel</button>
+          </form>
+        </div>
+      </div>
+    {% endfor %}
+  </div>
+{% else %}
+  <div class="empty"><h3>Nothing coming up</h3><p>Find something fun and register.</p><a class="btn btn-primary" href="{{ url_for('index') }}">Browse events</a></div>
+{% endif %}
+
+{% if past %}
+  <h2 class="section">Attended &amp; past <span class="count-pill">{{ past|length }}</span></h2>
+  <div class="rows rows-muted">
+    {% for e in past %}
+      <div class="row">
+        <div class="datebox"><span class="mon">{{ e.event_date|mon }}</span><span class="day">{{ e.event_date|dayn }}</span></div>
+        <div class="row-main">
+          <a href="{{ url_for('event_detail', event_id=e.id) }}"><strong>{{ e.title }}</strong></a>
+          <div class="meta">{{ e.event_date|fdate }} · {{ e.venue }}</div>
+        </div>
+        <div class="row-side"><span class="badge badge-muted">Ended</span></div>
+      </div>
+    {% endfor %}
+  </div>
+{% endif %}
+{% endblock %}

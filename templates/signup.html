@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block title %}Sign up{% endblock %}
+{% block content %}
+<div class="auth">
+  <h1>Create your account</h1>
+  <form method="post" class="form">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <fieldset class="role-pick">
+      <legend>I am a…</legend>
+      <label><input type="radio" name="role" value="student" {{ 'checked' if form.get('role', 'student') == 'student' }} onchange="toggleOrg()"> Student</label>
+      <label><input type="radio" name="role" value="organizer" {{ 'checked' if form.get('role') == 'organizer' }} onchange="toggleOrg()"> Event organiser</label>
+    </fieldset>
+    <label>Full name <input name="name" value="{{ form.get('name', '') }}" required></label>
+    <label>Email <input type="email" name="email" value="{{ form.get('email', '') }}" required></label>
+    <label>Password <input type="password" name="password" minlength="6" required></label>
+    <div class="two">
+      <label>USN <input name="usn" value="{{ form.get('usn', '') }}" placeholder="optional"></label>
+      <label>Department <input name="department" value="{{ form.get('department', '') }}" placeholder="optional"></label>
+    </div>
+    <label id="org-code" hidden>Organiser access code <input name="org_code" autocomplete="off"><small class="muted">Ask your club coordinator. (Demo code: ORG2026)</small></label>
+    <button class="btn btn-primary btn-block">Sign up</button>
+  </form>
+  <p class="muted center">Already have an account? <a href="{{ url_for('login') }}">Log in</a></p>
+</div>
+<script>
+  function toggleOrg() {
+    var org = document.querySelector('input[name=role][value=organizer]').checked;
+    document.getElementById('org-code').hidden = !org;
+  }
+  toggleOrg();
+</script>
+{% endblock %}
