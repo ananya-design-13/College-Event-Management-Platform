@@ -4,12 +4,20 @@ A Flask + SQLite web app where students discover and register for college events
 
 ## Run it
 
+### Option 1: From the root directory
 ```bash
+pip install -r backend/requirements.txt
+python run.py
+```
+
+### Option 2: From the backend directory
+```bash
+cd backend
 pip install -r requirements.txt
 python app.py
 ```
 
-Open http://127.0.0.1:5000. The database (`events.db`) is created and filled with demo data on first run. Delete `events.db` to reset.
+Open http://127.0.0.1:5000. The database (`backend/events.db`) is created and filled with demo data on first run. Delete `backend/events.db` to reset.
 
 | Role      | Email                  | Password       |
 |-----------|------------------------|----------------|
@@ -44,10 +52,15 @@ New organizer sign-ups need the access code `ORG2026` (change it with the `ORGAN
 ## Project layout
 
 ```
-app.py              routes, database, seed data
-templates/          Jinja templates
-static/style.css    styling
-requirements.txt
+backend/
+  app.py              routes, database, seed data
+  requirements.txt    Python dependencies
+  events.db           SQLite database
+  .secret_key         session secret key
+frontend/
+  templates/          Jinja HTML templates
+  static/style.css    styling and UI assets
+run.py                root entrypoint to start the application
 ```
 
 ## Configuration (optional environment variables)

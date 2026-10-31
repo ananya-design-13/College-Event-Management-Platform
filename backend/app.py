@@ -13,6 +13,7 @@ from flask import (Flask, Response, abort, flash, g, jsonify, redirect,
 from werkzeug.security import check_password_hash, generate_password_hash
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+FRONTEND_DIR = os.path.abspath(os.path.join(BASE_DIR, "..", "frontend"))
 DB_PATH = os.environ.get("DB_PATH", os.path.join(BASE_DIR, "events.db"))
 ORGANIZER_CODE = os.environ.get("ORGANIZER_CODE", "ORG2026")
 CATEGORIES = ["Technical", "Cultural", "Sports", "Workshop", "Academic", "Social"]
@@ -33,7 +34,11 @@ def _load_secret_key():
     return key
 
 
-app = Flask(__name__)
+app = Flask(
+    __name__,
+    template_folder=os.path.join(FRONTEND_DIR, "templates"),
+    static_folder=os.path.join(FRONTEND_DIR, "static"),
+)
 app.config["SECRET_KEY"] = _load_secret_key()
 app.config["SESSION_COOKIE_HTTPONLY"] = True
 app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
