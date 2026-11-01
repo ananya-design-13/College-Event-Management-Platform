@@ -10,7 +10,8 @@
     <p class="by">Organised by {{ ev.organizer_name }}</p>
     <div class="facts">
       <div><span class="k">Date</span><span class="v">{{ ev.event_date|fdate }}</span></div>
-      <div><span class="k">Time</span><span class="v">{{ ev.start_time|ftime }}{% if ev.end_time %} – {{ ev.end_time|ftime }}{% endif %}</span></div>
+      <div><span class="k">Time</span><span class="v">{{ ev.start_time|ftime }}{% if ev.end_time %} – {{
+          ev.end_time|ftime }}{% endif %}</span></div>
       <div><span class="k">Venue</span><span class="v">{{ ev.venue }}</span></div>
     </div>
     <h2>About this event</h2>
@@ -20,8 +21,10 @@
   <aside class="panel">
     <div class="panel-top">
       <div class="big">{{ ev.confirmed }}</div>
-      <div class="big-label">{{ 'student' if ev.confirmed == 1 else 'students' }} registered{% if not ev.unlimited %} of {{ ev.capacity }}{% endif %}</div>
-      {% if not ev.unlimited %}<div class="meter meter-lg"><span style="width: {{ ev.fill_pct }}%"></span></div>{% endif %}
+      <div class="big-label">{{ 'student' if ev.confirmed == 1 else 'students' }} registered{% if not ev.unlimited %} of
+        {{ ev.capacity }}{% endif %}</div>
+      {% if not ev.unlimited %}<div class="meter meter-lg"><span style="width: {{ ev.fill_pct }}%"></span></div>{% endif
+      %}
       <p class="small">
         {% if ev.unlimited %}No seat limit.
         {% elif ev.is_full %}This event is full.{% if ev.waitlisted %} {{ ev.waitlisted }} on the waitlist.{% endif %}
@@ -30,39 +33,70 @@
     </div>
 
     {% if g.user is none %}
-      {% if ev.is_past %}
-        <span class="badge badge-muted">This event has ended</span>
-      {% else %}
-        <a class="btn btn-primary btn-block" href="{{ url_for('login', next=request.path) }}">Log in to register</a>
-      {% endif %}
-    {% elif g.user.role == 'student' %}
-      {% if reg %}
-        <div class="status-box {{ 'ok' if reg.status == 'confirmed' else 'warn' }}">
-          {% if reg.status == 'confirmed' %}✓ You're registered{% else %}⏳ You're #{{ position }} on the waitlist{% endif %}
-        </div>
-        {% if not ev.is_past %}
-          <form method="post" action="{{ url_for('cancel_registration', event_id=ev.id) }}" onsubmit="return confirm('Cancel your registration?')">
-            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-            <input type="hidden" name="next" value="{{ url_for('event_detail', event_id=ev.id) }}">
-            <button class="btn btn-ghost btn-block">{{ 'Cancel registration' if reg.status == 'confirmed' else 'Leave waitlist' }}</button>
-          </form>
-        {% endif %}
-      {% elif ev.is_past %}
-        <span class="badge badge-muted">This event has ended</span>
-      {% else %}
-        <form method="post" action="{{ url_for('register', event_id=ev.id) }}">
-          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-          <button class="btn btn-primary btn-block">{{ 'Join the waitlist' if ev.is_full else 'Register now' }}</button>
-        </form>
-      {% endif %}
-    {% elif g.user.id == ev.organizer_id %}
-      <a class="btn btn-primary btn-block" href="{{ url_for('participants', event_id=ev.id) }}">View participants</a>
-      <a class="btn btn-ghost btn-block" href="{{ url_for('event_edit', event_id=ev.id) }}">Edit event</a>
+    {% if ev.is_past %}
+    <span class="badge badge-muted">This event has ended</span>
     {% else %}
-      <p class="small">Organiser accounts can't register for events.</p>
+    <a class="btn btn-primary btn-block" href="{{ url_for('login', next=request.path) }}">Log in to register</a>
+    {% endif %}
+    {% elif g.user.role == 'student' %}
+    {% if reg %}
+    <div class="status-box {{ 'ok' if reg.status == 'confirmed' else 'warn' }}">
+      {% if reg.status == 'confirmed' %}✓ You're registered{% else %}⏳ You're #{{ position }} on the waitlist{% endif %}
+    </div>
+
+    {% if reg.status == 'confirmed' and qr_payload %}
+    <div class="ticket-card-inline">
+      <div class="qr-frame">
+        <div id="inlineQrCode" class="auto-render-qr" data-payload='{{ qr_payload|e }}' data-size="160"></div>
+      </div>
+      <p class="small muted" style="margin: 4px 0 10px;">Scan at venue for attendance</p>
+      <button type="button" class="btn btn-primary btn-sm btn-block btn-open-pass" data-title="{{ ev.title }}"
+        data-date="{{ ev.event_date|fdate }}" data-time="{{ ev.start_time|ftime }}" data-venue="{{ ev.venue }}"
+        data-payload='{{ qr_payload|e }}'>
+        🎟️ View Full QR Pass
+      </button>
+    </div>
+    {% endif %}
+
+    {% if not ev.is_past %}
+    <form method="post" action="{{ url_for('cancel_registration', event_id=ev.id) }}"
+      onsubmit="return confirm('Cancel your registration?')">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <input type="hidden" name="next" value="{{ url_for('event_detail', event_id=ev.id) }}">
+      <button class="btn btn-ghost btn-block" style="margin-top: 10px;">{{ 'Cancel registration' if reg.status ==
+        'confirmed' else 'Leave waitlist' }}</button>
+    </form>
+    {% endif %}
+    {% elif ev.is_past %}
+    <span class="badge badge-muted">This event has ended</span>
+    {% else %}
+    <form method="post" action="{{ url_for('register', event_id=ev.id) }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <button class="btn btn-primary btn-block">{{ 'Join the waitlist' if ev.is_full else 'Register now' }}</button>
+    </form>
+    {% endif %}
+    {% elif g.user.id == ev.organizer_id %}
+    <a class="btn btn-primary btn-block" href="{{ url_for('participants', event_id=ev.id) }}">View participants</a>
+    <a class="btn btn-ghost btn-block" href="{{ url_for('event_edit', event_id=ev.id) }}">Edit event</a>
+    {% else %}
+    <p class="small">Organiser accounts can't register for events.</p>
     {% endif %}
 
     <a class="btn btn-link btn-block" href="{{ url_for('event_ics', event_id=ev.id) }}">📅 Add to calendar</a>
   </aside>
 </div>
+
+{% if just_registered and qr_payload %}
+<script>
+  window.addEventListener('DOMContentLoaded', function () {
+    openTicketModal(
+      {{ ev.title | tojson }},
+    {{ ev.event_date | fdate | tojson }},
+    {{ ev.start_time | ftime | tojson }},
+    {{ ev.venue | tojson }},
+    {{ qr_payload| tojson }}
+  );
+  });
+</script>
+{% endif %}
 {% endblock %}

@@ -234,3 +234,302 @@ code { background: #f3efe6; padding: 1px 6px; border-radius: 5px; font-size: .85
   .nav { order: 3; width: 100%; }
 }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+
+/* --------------------------------------------------------------------------
+ * Dark Mode Theme Variables & Overrides
+ * -------------------------------------------------------------------------- */
+[data-theme="dark"] {
+  --bg: #101116;
+  --surface: #181922;
+  --ink: #f1f0f7;
+  --ink-2: #b4b2c4;
+  --muted: #828096;
+  --line: #292b3a;
+  --accent: #e05638;
+  --accent-ink: #ffffff;
+  --accent-soft: #381e18;
+  --ok: #34d399;
+  --ok-soft: #10291e;
+  --warn: #fbbf24;
+  --warn-soft: #382c0f;
+  --danger: #f87171;
+  --shadow: 0 2px 6px rgba(0, 0, 0, .45), 0 8px 24px rgba(0, 0, 0, .4);
+  --c-technical: #5b8df8;
+  --c-cultural: #f43f82;
+  --c-sports: #34d399;
+  --c-workshop: #fb923c;
+  --c-academic: #a78bfa;
+  --c-social: #22d3ee;
+}
+
+[data-theme="dark"] body {
+  background-color: var(--bg);
+  color: var(--ink);
+}
+
+[data-theme="dark"] .table th {
+  background: #14151d;
+  border-bottom-color: var(--line);
+}
+
+[data-theme="dark"] .table td {
+  border-bottom-color: #212330;
+}
+
+[data-theme="dark"] .meter {
+  background: #262838;
+}
+
+[data-theme="dark"] .badge {
+  background: #252738;
+  color: var(--ink-2);
+}
+
+[data-theme="dark"] .count-pill {
+  background: #262838;
+  color: var(--ink-2);
+}
+
+[data-theme="dark"] code {
+  background: #222433;
+  color: #ff9b85;
+}
+
+[data-theme="dark"] .demo {
+  background: #242016;
+  border-color: #52401d;
+}
+
+[data-theme="dark"] input,
+[data-theme="dark"] select,
+[data-theme="dark"] textarea {
+  background: #13141b;
+  color: var(--ink);
+  border-color: var(--line);
+}
+
+[data-theme="dark"] .empty {
+  background: var(--surface);
+  border-color: #3b3d4f;
+}
+
+[data-theme="dark"] .btn-ghost {
+  background: var(--surface);
+  color: var(--ink);
+  border-color: var(--line);
+}
+
+[data-theme="dark"] .btn-ghost:hover {
+  background: #222430;
+  border-color: #40445a;
+}
+
+[data-theme="dark"] .pill {
+  background: var(--surface);
+  color: var(--ink-2);
+  border-color: var(--line);
+}
+
+[data-theme="dark"] .pill.on,
+[data-theme="dark"] .seg a.on {
+  background: var(--ink);
+  color: var(--bg);
+}
+
+[data-theme="dark"] .seg {
+  background: var(--surface);
+  border-color: var(--line);
+}
+
+[data-theme="dark"] .flash-success {
+  background: var(--ok-soft);
+  border-color: #1e5238;
+  color: #6ee7b7;
+}
+
+[data-theme="dark"] .flash-error {
+  background: #331515;
+  border-color: #612222;
+  color: #fca5a5;
+}
+
+[data-theme="dark"] .flash-warning {
+  background: var(--warn-soft);
+  border-color: #574116;
+  color: #fde047;
+}
+
+[data-theme="dark"] .flash-info {
+  background: #17243b;
+  border-color: #26436e;
+  color: #93c5fd;
+}
+
+/* Theme Toggle Button */
+.theme-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border-radius: 9px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  color: var(--ink);
+  cursor: pointer;
+  font-size: 1.15rem;
+  transition: transform .15s ease, background .15s, border-color .15s;
+}
+.theme-btn:hover {
+  transform: rotate(15deg) scale(1.05);
+  background: var(--accent-soft);
+  border-color: var(--accent);
+}
+[data-theme="dark"] .icon-moon { display: none; }
+[data-theme="dark"] .icon-sun { display: inline; }
+:root:not([data-theme="dark"]) .icon-sun { display: none; }
+:root:not([data-theme="dark"]) .icon-moon { display: inline; }
+
+/* --------------------------------------------------------------------------
+ * QR Ticket Pass & Modal
+ * -------------------------------------------------------------------------- */
+.ticket-card-inline {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 14px;
+  text-align: center;
+  margin-top: 14px;
+}
+
+.ticket-card {
+  background: var(--surface);
+  border: 2px dashed var(--line);
+  border-radius: 16px;
+  padding: 24px;
+  text-align: center;
+  box-shadow: var(--shadow);
+  position: relative;
+  overflow: hidden;
+}
+.ticket-card::before, .ticket-card::after {
+  content: "";
+  position: absolute;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--bg);
+  top: 50%;
+  transform: translateY(-50%);
+}
+.ticket-card::before { left: -11px; }
+.ticket-card::after { right: -11px; }
+
+.ticket-header {
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  font-weight: 700;
+  color: var(--accent);
+  margin-bottom: 6px;
+}
+.ticket-title {
+  font-size: 1.3rem;
+  font-weight: 700;
+  margin: 0 0 4px;
+  color: var(--ink);
+}
+.ticket-meta {
+  color: var(--ink-2);
+  font-size: 0.9rem;
+  margin-bottom: 14px;
+}
+.qr-frame {
+  display: inline-block;
+  background: #ffffff;
+  padding: 12px;
+  border-radius: 12px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+  margin: 6px auto 12px;
+}
+.qr-frame img, .qr-frame canvas, .qr-frame svg {
+  display: block;
+  margin: 0 auto;
+}
+.ticket-note {
+  font-size: 0.84rem;
+  color: var(--muted);
+  margin: 10px 0 0;
+}
+
+/* Modals */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.68);
+  backdrop-filter: blur(4px);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity .2s ease, visibility .2s ease;
+}
+.modal-overlay.open {
+  opacity: 1;
+  visibility: visible;
+}
+.modal-content {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  max-width: 440px;
+  width: 100%;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.4);
+  transform: scale(0.95);
+  transition: transform .2s ease;
+  overflow: hidden;
+}
+.modal-overlay.open .modal-content {
+  transform: scale(1);
+}
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--line);
+}
+.modal-header h3 {
+  margin: 0;
+  font-size: 1.15rem;
+}
+.modal-close {
+  background: none;
+  border: none;
+  font-size: 1.6rem;
+  cursor: pointer;
+  color: var(--muted);
+  line-height: 1;
+  padding: 2px 6px;
+  border-radius: 6px;
+}
+.modal-close:hover {
+  color: var(--ink);
+  background: var(--accent-soft);
+}
+.modal-body {
+  padding: 20px;
+  text-align: center;
+}
+.modal-actions {
+  display: flex;
+  gap: 10px;
+  padding: 14px 20px;
+  background: var(--bg);
+  border-top: 1px solid var(--line);
+  justify-content: center;
+}

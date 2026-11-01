@@ -1,6 +1,9 @@
 """CampusConnect: College Event Management Platform (Flask + SQLite)."""
 import csv
+import hashlib
+import hmac
 import io
+import json
 import os
 import re
 import secrets
@@ -42,6 +45,26 @@ app = Flask(
 app.config["SECRET_KEY"] = _load_secret_key()
 app.config["SESSION_COOKIE_HTTPONLY"] = True
 app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
+
+
+def make_qr_payload(reg, event, user):
+    """Generate a tamper-proof QR code payload encoding student and event details."""
+    reg_id = reg["id"] if isinstance(reg, dict) or hasattr(reg, "__getitem__") else getattr(reg, "id", None)
+    event_id = event["id"] if isinstance(event, dict) or hasattr(event, "__getitem__") else getattr(event, "id", None)
+    event_title = event["title"] if isinstance(event, dict) or hasattr(event, "__getitem__") else getattr(event, "title", "")
+    sig_raw = f"{reg_id}:{event_id}:{user['email']}".encode()
+    sig = hmac.new(app.config["SECRET_KEY"].encode(), sig_raw, hashlib.sha256).hexdigest()[:12]
+    payload = {
+        "type": "CAMPUSCONNECT_PASS",
+        "reg_id": reg_id,
+        "event_id": event_id,
+        "event_title": event_title,
+        "name": user["name"],
+        "usn": user["usn"] or "",
+        "email": user["email"],
+        "sig": sig
+    }
+    return json.dumps(payload, separators=(',', ':'))
 
 # --------------------------------------------------------------------------
 # Database
@@ -169,6 +192,8 @@ def load_user_and_check_csrf():
             session.pop("user_id", None)
     if request.method == "POST":
         sent = request.form.get("csrf_token", "")
+        if not sent and request.is_json:
+            sent = (request.get_json(silent=True) or {}).get("csrf_token", "") or request.headers.get("X-CSRFToken", "")
         if not sent or not secrets.compare_digest(sent, session.get("_csrf", "")):
             abort(400, "Your session expired. Please go back, refresh the page and try again.")
 
@@ -372,7 +397,12 @@ def event_detail(event_id):
             "SELECT COUNT(*) c FROM registrations WHERE event_id = ? AND status = 'waitlisted' "
             "AND (created_at < ? OR (created_at = ? AND id <= ?))",
             (event_id, reg["created_at"], reg["created_at"], reg["id"])).fetchone()["c"]
-    return render_template("event.html", ev=ev, reg=reg, position=position)
+    qr_payload = None
+    if reg and reg["status"] == "confirmed" and g.user:
+        qr_payload = make_qr_payload(reg, ev, g.user)
+    just_registered = (request.args.get("registered") == "1")
+    return render_template("event.html", ev=ev, reg=reg, position=position,
+                           qr_payload=qr_payload, just_registered=just_registered)
 
 
 @app.route("/event/<int:event_id>.ics")
@@ -449,7 +479,8 @@ def register(event_id):
     db.commit()
 
     if status == "confirmed":
-        flash(f"You're in! Registered for “{ev['title']}”.", "success")
+        flash(f"You're in! Registered for “{ev['title']}”. Your unique entry QR pass has been generated.", "success")
+        return redirect(url_for("event_detail", event_id=event_id, registered="1"))
     else:
         flash("This event is full, so you've been added to the waitlist. "
               "We'll move you up automatically if a spot opens.", "warning")
@@ -485,9 +516,14 @@ def my_events():
         return redirect(url_for("dashboard"))
     rows = get_db().execute(
         EVENT_SQL.replace("FROM events e", "FROM events e JOIN registrations mr ON mr.event_id = e.id", 1)
-        .replace("SELECT e.*,", "SELECT e.*, mr.status AS my_status, mr.created_at AS registered_at,", 1)
+        .replace("SELECT e.*,", "SELECT e.*, mr.id AS reg_id, mr.attended AS attended, mr.status AS my_status, mr.created_at AS registered_at,", 1)
         + " WHERE mr.user_id = ? ORDER BY e.event_date, e.start_time", (g.user["id"],)).fetchall()
     items = [decorate(r) for r in rows]
+    for e in items:
+        if e.get("my_status") == "confirmed":
+            e["qr_payload"] = make_qr_payload({"id": e["reg_id"], "status": e["my_status"]}, e, g.user)
+        else:
+            e["qr_payload"] = None
     upcoming = [e for e in items if not e["is_past"]]
     past = [e for e in items if e["is_past"]]
     return render_template("my_events.html", upcoming=upcoming, past=past[::-1])
@@ -697,6 +733,62 @@ def toggle_attendance(event_id, reg_id):
                "AND status = 'confirmed'", (reg_id, event_id))
     db.commit()
     return redirect(url_for("participants", event_id=event_id, status=request.form.get("status") or None))
+
+
+@app.post("/dashboard/<int:event_id>/verify-qr")
+@organizer_required
+def verify_qr(event_id):
+    """Verify an attendee's QR code pass and mark attendance."""
+    own_event_or_404(event_id)
+    payload_raw = None
+    if request.is_json:
+        payload_raw = (request.get_json() or {}).get("qr_data")
+    else:
+        payload_raw = request.form.get("qr_data")
+    if not payload_raw:
+        return jsonify({"success": False, "error": "No QR data provided."}), 400
+    try:
+        data = json.loads(payload_raw) if isinstance(payload_raw, str) else payload_raw
+    except Exception:
+        return jsonify({"success": False, "error": "Invalid QR code payload format."}), 400
+
+    p_eid = data.get("event_id")
+    reg_id = data.get("reg_id")
+    p_email = data.get("email", "")
+    sig = data.get("sig", "")
+    try:
+        if int(p_eid) != event_id or not reg_id:
+            return jsonify({"success": False, "error": "This QR pass belongs to a different event."}), 400
+    except (ValueError, TypeError):
+        return jsonify({"success": False, "error": "Invalid event ID in QR code."}), 400
+
+    sig_raw = f"{reg_id}:{event_id}:{p_email}".encode()
+    expected_sig = hmac.new(app.config["SECRET_KEY"].encode(), sig_raw, hashlib.sha256).hexdigest()[:12]
+    if not secrets.compare_digest(sig, expected_sig):
+        return jsonify({"success": False, "error": "Security signature mismatch. Invalid or forged QR pass."}), 400
+
+    db = get_db()
+    reg = db.execute("SELECT r.*, u.name, u.usn, u.email FROM registrations r JOIN users u ON u.id = r.user_id "
+                     "WHERE r.id = ? AND r.event_id = ?", (reg_id, event_id)).fetchone()
+    if not reg:
+        return jsonify({"success": False, "error": "Registration record not found in system."}), 404
+    if reg["status"] != "confirmed":
+        return jsonify({"success": False, "error": f"Registration is currently {reg['status']} (not confirmed)."}), 400
+
+    already_marked = (reg["attended"] == 1)
+    if not already_marked:
+        db.execute("UPDATE registrations SET attended = 1 WHERE id = ?", (reg_id,))
+        db.commit()
+
+    return jsonify({
+        "success": True,
+        "already_marked": already_marked,
+        "name": reg["name"],
+        "usn": reg["usn"] or "N/A",
+        "email": reg["email"],
+        "reg_id": reg_id,
+        "message": "Already checked in earlier." if already_marked else "Attendance verified and marked successfully!"
+    })
 
 
 @app.post("/dashboard/<int:event_id>/participants/<int:reg_id>/remove")

@@ -8,56 +8,247 @@
     <h1>{{ ev.title }}</h1>
     <p class="muted">{{ ev.event_date|fdate }} · {{ ev.start_time|ftime }} · {{ ev.venue }}</p>
   </div>
-  <a class="btn btn-ghost" href="{{ url_for('participants_csv', event_id=ev.id) }}">⬇ Export CSV</a>
+  <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+    <button type="button" class="btn btn-primary" id="btnOpenScanner">📷 QR Attendance Scanner</button>
+    <a class="btn btn-ghost" href="{{ url_for('participants_csv', event_id=ev.id) }}">⬇ Export CSV</a>
+  </div>
 </section>
 
 <div class="stats">
-  <div class="stat"><span class="n">{{ ev.confirmed }}{% if not ev.unlimited %}<small>/{{ ev.capacity }}</small>{% endif %}</span><span class="l">Confirmed</span></div>
+  <div class="stat"><span class="n">{{ ev.confirmed }}{% if not ev.unlimited %}<small>/{{ ev.capacity }}</small>{% endif
+      %}</span><span class="l">Confirmed</span></div>
   <div class="stat"><span class="n">{{ ev.waitlisted }}</span><span class="l">Waitlisted</span></div>
-  <div class="stat"><span class="n">{{ ev.attended_count }}</span><span class="l">Checked in</span></div>
-  <div class="stat"><span class="n">{{ ev.fill_pct if not ev.unlimited else '–' }}{% if not ev.unlimited %}%{% endif %}</span><span class="l">Capacity filled</span></div>
+  <div class="stat"><span class="n" id="statCheckedIn">{{ ev.attended_count }}</span><span class="l">Checked in</span>
+  </div>
+  <div class="stat"><span class="n">{{ ev.fill_pct if not ev.unlimited else '–' }}{% if not ev.unlimited %}%{% endif
+      %}</span><span class="l">Capacity filled</span></div>
 </div>
 
 <div class="seg seg-left">
   <a class="{{ 'on' if not status }}" href="{{ url_for('participants', event_id=ev.id) }}">All</a>
-  <a class="{{ 'on' if status == 'confirmed' }}" href="{{ url_for('participants', event_id=ev.id, status='confirmed') }}">Confirmed</a>
-  <a class="{{ 'on' if status == 'waitlisted' }}" href="{{ url_for('participants', event_id=ev.id, status='waitlisted') }}">Waitlist</a>
+  <a class="{{ 'on' if status == 'confirmed' }}"
+    href="{{ url_for('participants', event_id=ev.id, status='confirmed') }}">Confirmed</a>
+  <a class="{{ 'on' if status == 'waitlisted' }}"
+    href="{{ url_for('participants', event_id=ev.id, status='waitlisted') }}">Waitlist</a>
 </div>
 
 {% if regs %}
 <div class="table-wrap">
-<table class="table">
-  <thead><tr><th>#</th><th>Student</th><th>USN</th><th>Department</th><th>Registered</th><th>Status</th><th class="right">Actions</th></tr></thead>
-  <tbody>
-  {% for r in regs %}
-    <tr>
-      <td class="muted">{{ loop.index }}</td>
-      <td><strong>{{ r.name }}</strong><div class="muted small">{{ r.email }}</div></td>
-      <td>{{ r.usn or '–' }}</td>
-      <td>{{ r.department or '–' }}</td>
-      <td class="nowrap">{{ r.registered_at|fstamp }}</td>
-      <td>{% if r.status == 'confirmed' %}<span class="badge badge-ok">Confirmed</span>{% else %}<span class="badge badge-warn">Waitlisted</span>{% endif %}</td>
-      <td class="right nowrap">
-        {% if r.status == 'confirmed' %}
-        <form class="inline" method="post" action="{{ url_for('toggle_attendance', event_id=ev.id, reg_id=r.reg_id) }}">
-          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-          <input type="hidden" name="status" value="{{ status }}">
-          <button class="btn btn-sm {{ 'btn-primary' if r.attended else 'btn-ghost' }}">{{ '✓ Present' if r.attended else 'Check in' }}</button>
-        </form>
-        {% endif %}
-        <form class="inline" method="post" action="{{ url_for('remove_participant', event_id=ev.id, reg_id=r.reg_id) }}"
-              onsubmit="return confirm('Remove this participant?')">
-          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-          <input type="hidden" name="status" value="{{ status }}">
-          <button class="btn btn-danger btn-sm">Remove</button>
-        </form>
-      </td>
-    </tr>
-  {% endfor %}
-  </tbody>
-</table>
+  <table class="table" id="participantsTable">
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>Student</th>
+        <th>USN</th>
+        <th>Department</th>
+        <th>Registered</th>
+        <th>Status</th>
+        <th class="right">Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for r in regs %}
+      <tr id="row-reg-{{ r.reg_id }}">
+        <td class="muted">{{ loop.index }}</td>
+        <td><strong>{{ r.name }}</strong>
+          <div class="muted small">{{ r.email }}</div>
+        </td>
+        <td>{{ r.usn or '–' }}</td>
+        <td>{{ r.department or '–' }}</td>
+        <td class="nowrap">{{ r.registered_at|fstamp }}</td>
+        <td>{% if r.status == 'confirmed' %}<span class="badge badge-ok">Confirmed</span>{% else %}<span
+            class="badge badge-warn">Waitlisted</span>{% endif %}</td>
+        <td class="right nowrap">
+          {% if r.status == 'confirmed' %}
+          <form class="inline" method="post"
+            action="{{ url_for('toggle_attendance', event_id=ev.id, reg_id=r.reg_id) }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <input type="hidden" name="status" value="{{ status }}">
+            <button class="btn btn-sm btn-attend-toggle {{ 'btn-primary' if r.attended else 'btn-ghost' }}">{{ '✓
+              Present' if r.attended else 'Check in' }}</button>
+          </form>
+          {% endif %}
+          <form class="inline" method="post"
+            action="{{ url_for('remove_participant', event_id=ev.id, reg_id=r.reg_id) }}"
+            onsubmit="return confirm('Remove this participant?')">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <input type="hidden" name="status" value="{{ status }}">
+            <button class="btn btn-danger btn-sm">Remove</button>
+          </form>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
 </div>
 {% else %}
-  <div class="empty"><h3>No registrations yet</h3><p>Share the event link and they'll show up here.</p></div>
+<div class="empty">
+  <h3>No registrations yet</h3>
+  <p>Share the event link and they'll show up here.</p>
+</div>
 {% endif %}
+
+<!-- QR Scanner Modal for Organizer Attendance -->
+<div id="scannerModal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="modalScannerTitle">
+  <div class="modal-content" style="max-width: 520px;">
+    <div class="modal-header">
+      <h3 id="modalScannerTitle">📷 Scan QR Ticket Pass</h3>
+      <button type="button" class="modal-close" id="btnCloseScanner" aria-label="Close scanner">&times;</button>
+    </div>
+    <div class="modal-body">
+      <p class="muted small" style="margin-top:0;">Scan student's QR pass or paste raw QR payload to verify details and
+        mark attendance.</p>
+
+      <div id="scannerVideoContainer"
+        style="display:none; position:relative; border-radius:12px; overflow:hidden; margin-bottom:14px; background:#000;">
+        <video id="scannerVideo" style="width:100%; max-height:240px; display:block; object-fit:cover;"></video>
+        <div style="position:absolute; inset:20px; border:2px dashed #ff5733; border-radius:10px; pointer-events:none;">
+        </div>
+      </div>
+
+      <div style="display:flex; gap:8px; margin-bottom:14px;">
+        <button type="button" class="btn btn-ghost btn-sm" id="btnToggleCamera" style="flex:1;">📹 Start Camera
+          Scan</button>
+      </div>
+
+      <form id="qrScanForm" onsubmit="event.preventDefault(); submitQrData();">
+        <label style="text-align:left; font-size:0.88rem; font-weight:600; display:block; margin-bottom:6px;">
+          Paste / Type QR Code Data:
+        </label>
+        <input type="text" id="qrInput" placeholder='{"type":"CAMPUSCONNECT_PASS", ...}'
+          style="font-family:monospace; font-size:0.85rem;" autofocus>
+        <button type="submit" class="btn btn-primary btn-block" style="margin-top:10px;" id="btnVerifyQr">
+          ✓ Verify & Mark Attendance
+        </button>
+      </form>
+
+      <div id="scannerResult" style="display:none; margin-top:16px; padding:14px; border-radius:10px; text-align:left;">
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  (function () {
+    const modal = document.getElementById('scannerModal');
+    const btnOpen = document.getElementById('btnOpenScanner');
+    const btnClose = document.getElementById('btnCloseScanner');
+    const qrInput = document.getElementById('qrInput');
+    const resultDiv = document.getElementById('scannerResult');
+    const btnCamera = document.getElementById('btnToggleCamera');
+    const video = document.getElementById('scannerVideo');
+    const videoContainer = document.getElementById('scannerVideoContainer');
+    let mediaStream = null;
+    let scanInterval = null;
+
+    btnOpen.addEventListener('click', function () {
+      modal.classList.add('open');
+      qrInput.value = '';
+      resultDiv.style.display = 'none';
+      qrInput.focus();
+    });
+
+    function stopCamera() {
+      if (scanInterval) { clearInterval(scanInterval); scanInterval = null; }
+      if (mediaStream) {
+        mediaStream.getTracks().forEach(track => track.stop());
+        mediaStream = null;
+      }
+      videoContainer.style.display = 'none';
+      btnCamera.textContent = '📹 Start Camera Scan';
+    }
+
+    btnClose.addEventListener('click', function () {
+      stopCamera();
+      modal.classList.remove('open');
+    });
+
+    // Camera Barcode Scanning
+    btnCamera.addEventListener('click', async function () {
+      if (mediaStream) {
+        stopCamera();
+        return;
+      }
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        alert('Camera access is not supported on this browser or connection.');
+        return;
+      }
+      try {
+        mediaStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+        video.srcObject = mediaStream;
+        await video.play();
+        videoContainer.style.display = 'block';
+        btnCamera.textContent = '⏹ Stop Camera';
+
+        if ('BarcodeDetector' in window) {
+          const barcodeDetector = new BarcodeDetector({ formats: ['qr_code'] });
+          scanInterval = setInterval(async () => {
+            try {
+              const codes = await barcodeDetector.detect(video);
+              if (codes && codes.length > 0) {
+                qrInput.value = codes[0].rawValue;
+                stopCamera();
+                submitQrData();
+              }
+            } catch (e) { }
+          }, 500);
+        }
+      } catch (err) {
+        alert('Could not access camera: ' + err.message);
+        stopCamera();
+      }
+    });
+
+    window.submitQrData = async function () {
+      const rawVal = qrInput.value.trim();
+      if (!rawVal) return;
+
+      resultDiv.style.display = 'block';
+      resultDiv.className = 'flash flash-info';
+      resultDiv.innerHTML = 'Verifying QR pass...';
+
+      try {
+        const csrf = '{{ csrf_token() }}';
+        const res = await fetch('{{ url_for("verify_qr", event_id=ev.id) }}', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest'
+          },
+          body: JSON.stringify({ qr_data: rawVal, csrf_token: csrf })
+        });
+        const data = await res.json();
+        if (data.success) {
+          resultDiv.className = 'flash flash-success';
+          resultDiv.innerHTML = `
+          <strong>✅ Verified: ${data.student_name}</strong><br>
+          <small>USN: ${data.student_usn} · Email: ${data.student_email}</small><br>
+          <em>${data.message}</em>
+        `;
+          // Update attendance button in table
+          const row = document.getElementById('row-reg-' + data.reg_id);
+          if (row) {
+            const btn = row.querySelector('.btn-attend-toggle');
+            if (btn) {
+              btn.className = 'btn btn-sm btn-attend-toggle btn-primary';
+              btn.textContent = '✓ Present';
+            }
+          }
+          // Update checked in count
+          const statEl = document.getElementById('statCheckedIn');
+          if (statEl && !data.already_marked) {
+            statEl.textContent = parseInt(statEl.textContent || '0', 10) + 1;
+          }
+          qrInput.value = '';
+        } else {
+          resultDiv.className = 'flash flash-error';
+          resultDiv.innerHTML = `<strong>❌ Verification Failed:</strong> ${data.error || 'Invalid QR code.'}`;
+        }
+      } catch (err) {
+        resultDiv.className = 'flash flash-error';
+        resultDiv.innerHTML = `<strong>Error:</strong> Request failed: ${err.message}`;
+      }
+    };
+  })();
+</script>
 {% endblock %}

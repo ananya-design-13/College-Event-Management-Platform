@@ -18,7 +18,21 @@
           <div class="meta">{{ e.start_time|ftime }} · {{ e.venue }}</div>
         </div>
         <div class="row-side">
-          {% if e.my_status == 'confirmed' %}<span class="badge badge-ok">✓ Confirmed</span>{% else %}<span class="badge badge-warn">Waitlisted</span>{% endif %}
+          {% if e.my_status == 'confirmed' %}
+            <span class="badge badge-ok">✓ Confirmed</span>
+            {% if e.qr_payload %}
+              <button type="button" class="btn btn-primary btn-sm btn-open-pass"
+                      data-title="{{ e.title }}"
+                      data-date="{{ e.event_date|fdate }}"
+                      data-time="{{ e.start_time|ftime }}"
+                      data-venue="{{ e.venue }}"
+                      data-payload='{{ e.qr_payload|e }}'>
+                🎟️ View QR Pass
+              </button>
+            {% endif %}
+          {% else %}
+            <span class="badge badge-warn">Waitlisted</span>
+          {% endif %}
           <a class="btn btn-link btn-sm" href="{{ url_for('event_ics', event_id=e.id) }}">📅 Calendar</a>
           <form method="post" action="{{ url_for('cancel_registration', event_id=e.id) }}" onsubmit="return confirm('Cancel your registration?')">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
@@ -42,7 +56,9 @@
           <a href="{{ url_for('event_detail', event_id=e.id) }}"><strong>{{ e.title }}</strong></a>
           <div class="meta">{{ e.event_date|fdate }} · {{ e.venue }}</div>
         </div>
-        <div class="row-side"><span class="badge badge-muted">Ended</span></div>
+        <div class="row-side">
+          {% if e.attended %}<span class="badge badge-ok">✓ Attended</span>{% else %}<span class="badge badge-muted">Ended</span>{% endif %}
+        </div>
       </div>
     {% endfor %}
   </div>
