@@ -63,6 +63,22 @@ frontend/
 run.py                root entrypoint to start the application
 ```
 
+## Deploy on Render
+
+1. Push your repository to GitHub / GitLab.
+2. Go to [Render](https://render.com) and click **New +** > **Web Service**.
+3. Connect your GitHub repository.
+4. Configure the service settings:
+   - **Runtime**: `Python 3`
+   - **Build Command**: `pip install -r requirements.txt`
+   - **Start Command**: `gunicorn run:app`
+5. (Optional) In **Environment Variables**, add:
+   - `ORGANIZER_CODE`: `ORG2026`
+   - `SECRET_KEY`: (any random secret string)
+6. Click **Deploy Web Service**.
+
+Alternatively, Render will automatically detect the provided [`render.yaml`](render.yaml) blueprint if you deploy via **New +** > **Blueprint**.
+
 ## Configuration (optional environment variables)
 
 `PORT`, `DB_PATH`, `SECRET_KEY`, `ORGANIZER_CODE`, `FLASK_DEBUG=1`.
